@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ShimmerLayout">
+        <attr name="foreground_color" format="color|reference"/>
+        <attr name="animation_duration" format="integer|reference"/>
+        <attr name="angle" format="integer|reference"/>
+    </declare-styleable>
+</resources>

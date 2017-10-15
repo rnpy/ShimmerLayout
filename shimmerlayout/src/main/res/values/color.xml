@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="defaultForegroundColor">#C0C0C0</color>
+    <color name="default_foreground_color">#C0C0C0</color>
 </resources>

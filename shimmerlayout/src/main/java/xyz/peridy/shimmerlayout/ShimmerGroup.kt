@@ -3,10 +3,10 @@ package xyz.peridy.shimmerlayout
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
+import android.os.Handler
 import android.view.View
 import java.lang.ref.WeakReference
 import java.util.ArrayList
-import java.util.concurrent.*
 import java.util.concurrent.locks.ReentrantLock
 
 class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoader = DefaultBitmapLoader()) {
@@ -15,6 +15,9 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
     private var destinationBitmap: Bitmap? = null
     private var sourceMaskBitmap: Bitmap? = null
     private val animatedViews = ArrayList<WeakReference<ShimmerLayout>>()
+    private val bitmapCreationLock: ReentrantLock by lazy { ReentrantLock() }
+    private val bitmapCreationHandler: Handler by lazy { Handler() }
+
     private lateinit var shimmerConfig: ShimmerConfig
 
     internal var maskOffsetX: Int = 0
@@ -58,15 +61,15 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
 
     internal fun initializeDestinationBitmap(context: Context): Bitmap? {
         if (destinationBitmap == null) {
-            getExecutor().execute {
-                lock.lock()
+            bitmapCreationHandler.post {
+                bitmapCreationLock.lock()
                 if (destinationBitmap == null) {
                     destinationBitmap = createBitmap(context, shimmerConfig.width, shimmerConfig.height)
                     if (destinationBitmap == null) {
                         onLowMemory(context)
                     }
                 }
-                lock.unlock()
+                bitmapCreationLock.unlock()
             }
         }
 
@@ -79,9 +82,9 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
             val width = maskRect.width()
             val height = maskRect.height()
 
-            getExecutor().execute {
+            bitmapCreationHandler.post {
                 try {
-                    lock.lock()
+                    bitmapCreationLock.lock()
                     if (sourceMaskBitmap == null) {
                         sourceMaskBitmap = createBitmap(context, width, height)
                         if (sourceMaskBitmap != null) {
@@ -102,7 +105,7 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
                         }
                     }
                 } finally {
-                    lock.unlock()
+                    bitmapCreationLock.unlock()
                 }
             }
         }
@@ -155,29 +158,4 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
                                 val shimmerColor: Int,
                                 val shimmerAngle: Int,
                                 val shimmerAnimationDuration: Long)
-
-    companion object {
-        private val lock: ReentrantLock = ReentrantLock()
-        private var currentExecutor: ThreadPoolExecutor? = null
-
-        fun getExecutor(): ThreadPoolExecutor {
-            var service = currentExecutor
-            if (service != null) {
-                return service
-            }
-            service = SelfShutdownExecutor()
-            currentExecutor = service
-            return service
-        }
-
-        private class SelfShutdownExecutor : ThreadPoolExecutor(0, 1, 0, TimeUnit.SECONDS, LinkedBlockingQueue<Runnable>()) {
-            override fun afterExecute(runnable: Runnable?, throwable: Throwable?) {
-                super.afterExecute(runnable, throwable)
-                if (queue.isEmpty()) {
-                    currentExecutor = null
-                    shutdown()
-                }
-            }
-        }
-    }
 }

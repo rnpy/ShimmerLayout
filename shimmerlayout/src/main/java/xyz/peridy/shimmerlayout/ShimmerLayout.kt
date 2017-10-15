@@ -26,7 +26,7 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
     private val shimmerColor: Int
     private val shimmerAngle: Int
 
-    lateinit var shimmerGroup: ShimmerGroup
+    var shimmerGroup: ShimmerGroup? = null
 
     init {
         setWillNotDraw(false)
@@ -89,19 +89,20 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
             })
             return
         }
-        shimmerGroup.initialize(width, height, shimmerColor, shimmerAngle, shimmerDuration.toLong())
-        shimmerGroup.startAnimator()
-        shimmerGroup.addView(this)
+        shimmerGroup?.initialize(width, height, shimmerColor, shimmerAngle, shimmerDuration.toLong())
+        shimmerGroup?.startAnimator()
+        shimmerGroup?.addView(this)
     }
 
     internal fun stopShimmerAnimation() {
-        shimmerGroup.removeView(context, this)
+        shimmerGroup?.removeView(context, this)
         renderingCanvas = null
     }
 
     private fun dispatchDrawUsingBitmap(canvas: Canvas) {
         super.dispatchDraw(canvas)
 
+        val shimmerGroup = shimmerGroup ?: return
         val localAvailableBitmap = shimmerGroup.initializeDestinationBitmap(context) ?: return
         val localMaskRect = shimmerGroup.maskRect ?: return
 
@@ -119,6 +120,7 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
     }
 
     private fun drawMasked(renderCanvas: Canvas) {
+        val shimmerGroup = shimmerGroup ?: return
         val localMaskBitmap = shimmerGroup.initializeSourceMaskBitmap(context) ?: return
 
         renderCanvas.save()
@@ -132,6 +134,6 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
     companion object {
         private val DEFAULT_DURATION = 1500
         private val DEFAULT_ANGLE = 20
-        private val DEFAULT_COLOR = R.color.defaultForegroundColor
+        private val DEFAULT_COLOR = R.color.default_foreground_color
     }
 }

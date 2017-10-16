@@ -15,7 +15,10 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
     private var destinationBitmap: Bitmap? = null
     private var sourceMaskBitmap: Bitmap? = null
     private val animatedViews = ArrayList<WeakReference<ShimmerLayout>>()
+
     private val bitmapCreationLock: ReentrantLock by lazy { ReentrantLock() }
+    private var initializeDestinationBitmapTask: AsyncTask<Void, Void, Void>? = null
+    private var initializeSourceMaskBitmapTask: AsyncTask<Void, Void, Void>? = null
 
     private lateinit var shimmerConfig: ShimmerConfig
 
@@ -36,7 +39,7 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
 
         if (maskRect != null) {
             val shimmerBitmapWidth = maskRect.width()
-            if (maskOffsetX + shimmerBitmapWidth >= 0)
+            if (maskOffsetX + shimmerBitmapWidth >= 0) {
                 animatedViews.toTypedArray().forEach {
                     val view = it.get()
                     if (view != null) {
@@ -49,6 +52,7 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
                         animatedViews.remove(it)
                     }
                 }
+            }
         }
     }
 
@@ -59,8 +63,8 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
     }
 
     internal fun initializeDestinationBitmap(context: Context): Bitmap? {
-        if (destinationBitmap == null) {
-            object : AsyncTask<Void, Void, Void>() {
+        if (destinationBitmap == null && initializeDestinationBitmapTask == null) {
+            initializeDestinationBitmapTask = object : AsyncTask<Void, Void, Void>() {
                 override fun doInBackground(vararg p0: Void?): Void? {
                     try {
                         bitmapCreationLock.lock()
@@ -69,13 +73,13 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
                             if (destinationBitmap == null) {
                                 onLowMemory(context)
                             }
+                            initializeDestinationBitmapTask = null
                         }
                     } finally {
                         bitmapCreationLock.unlock()
                     }
                     return null
                 }
-
             }.execute()
         }
 
@@ -84,11 +88,11 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
 
     internal fun initializeSourceMaskBitmap(context: Context): Bitmap? {
         val maskRect = maskRect
-        if (sourceMaskBitmap == null && maskRect != null) {
+        if (sourceMaskBitmap == null && maskRect != null && initializeSourceMaskBitmapTask == null) {
             val width = maskRect.width()
             val height = maskRect.height()
 
-            object : AsyncTask<Void, Void, Void>() {
+            initializeSourceMaskBitmapTask = object : AsyncTask<Void, Void, Void>() {
                 override fun doInBackground(vararg p0: Void?): Void? {
                     try {
                         bitmapCreationLock.lock()
@@ -111,6 +115,7 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
                                 onLowMemory(context)
                             }
                         }
+                        initializeSourceMaskBitmapTask = null
                     } finally {
                         bitmapCreationLock.unlock()
                     }

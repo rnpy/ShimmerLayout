@@ -7,7 +7,6 @@ import android.os.AsyncTask
 import android.view.View
 import java.lang.ref.WeakReference
 import java.util.ArrayList
-import java.util.concurrent.locks.ReentrantLock
 
 class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoader = DefaultBitmapLoader()) {
 
@@ -16,7 +15,6 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
     private var sourceMaskBitmap: Bitmap? = null
     private val animatedViews = ArrayList<WeakReference<ShimmerLayout>>()
 
-    private val bitmapCreationLock: ReentrantLock by lazy { ReentrantLock() }
     private var initializeDestinationBitmapTask: AsyncTask<Void, Void, Void>? = null
     private var initializeSourceMaskBitmapTask: AsyncTask<Void, Void, Void>? = null
 
@@ -66,17 +64,12 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
         if (destinationBitmap == null && initializeDestinationBitmapTask == null) {
             initializeDestinationBitmapTask = object : AsyncTask<Void, Void, Void>() {
                 override fun doInBackground(vararg p0: Void?): Void? {
-                    try {
-                        bitmapCreationLock.lock()
+                    if (destinationBitmap == null) {
+                        destinationBitmap = createBitmap(context, shimmerConfig.width, shimmerConfig.height)
                         if (destinationBitmap == null) {
-                            destinationBitmap = createBitmap(context, shimmerConfig.width, shimmerConfig.height)
-                            if (destinationBitmap == null) {
-                                onLowMemory(context)
-                            }
-                            initializeDestinationBitmapTask = null
+                            onLowMemory(context)
                         }
-                    } finally {
-                        bitmapCreationLock.unlock()
+                        initializeDestinationBitmapTask = null
                     }
                     return null
                 }
@@ -94,31 +87,26 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
 
             initializeSourceMaskBitmapTask = object : AsyncTask<Void, Void, Void>() {
                 override fun doInBackground(vararg p0: Void?): Void? {
-                    try {
-                        bitmapCreationLock.lock()
-                        if (sourceMaskBitmap == null) {
-                            sourceMaskBitmap = createBitmap(context, width, height)
-                            if (sourceMaskBitmap != null) {
-                                val paint = Paint().apply {
-                                    val edgeColor = ShimmerUtil.reduceColorAlphaValueToZero(shimmerConfig.shimmerColor)
-                                    shader = LinearGradient(
-                                            (-maskRect.left).toFloat(), 0f,
-                                            (width + maskRect.left).toFloat(), 0f,
-                                            intArrayOf(edgeColor, shimmerConfig.shimmerColor, shimmerConfig.shimmerColor, edgeColor),
-                                            floatArrayOf(0.30f, 0.47f, 0.53f, 0.70f),
-                                            Shader.TileMode.CLAMP)
-                                }
-                                val canvas = Canvas(sourceMaskBitmap)
-                                canvas.rotate(shimmerConfig.shimmerAngle.toFloat(), (width / 2).toFloat(), (height / 2).toFloat())
-                                canvas.drawRect((-maskRect.left).toFloat(), maskRect.top.toFloat(), (width + maskRect.left).toFloat(), maskRect.bottom.toFloat(), paint)
-                            } else {
-                                onLowMemory(context)
+                    if (sourceMaskBitmap == null) {
+                        sourceMaskBitmap = createBitmap(context, width, height)
+                        if (sourceMaskBitmap != null) {
+                            val paint = Paint().apply {
+                                val edgeColor = ShimmerUtil.reduceColorAlphaValueToZero(shimmerConfig.shimmerColor)
+                                shader = LinearGradient(
+                                        (-maskRect.left).toFloat(), 0f,
+                                        (width + maskRect.left).toFloat(), 0f,
+                                        intArrayOf(edgeColor, shimmerConfig.shimmerColor, shimmerConfig.shimmerColor, edgeColor),
+                                        floatArrayOf(0.30f, 0.47f, 0.53f, 0.70f),
+                                        Shader.TileMode.CLAMP)
                             }
+                            val canvas = Canvas(sourceMaskBitmap)
+                            canvas.rotate(shimmerConfig.shimmerAngle.toFloat(), (width / 2).toFloat(), (height / 2).toFloat())
+                            canvas.drawRect((-maskRect.left).toFloat(), maskRect.top.toFloat(), (width + maskRect.left).toFloat(), maskRect.bottom.toFloat(), paint)
+                        } else {
+                            onLowMemory(context)
                         }
-                        initializeSourceMaskBitmapTask = null
-                    } finally {
-                        bitmapCreationLock.unlock()
                     }
+                    initializeSourceMaskBitmapTask = null
                     return null
                 }
             }.execute()
@@ -163,7 +151,8 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
     private fun createBitmap(context: Context, width: Int, height: Int) =
             try {
                 bitmapLoader.get(context, width, height, Bitmap.Config.ARGB_8888)
-            } catch (_: OutOfMemoryError) {
+            } catch (_: Exception) {
+                // Don't crash if creation fails for any reason, just disable animation.
                 null
             }
 

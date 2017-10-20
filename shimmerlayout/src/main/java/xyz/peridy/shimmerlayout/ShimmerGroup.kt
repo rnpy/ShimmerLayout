@@ -8,6 +8,18 @@ import android.view.View
 import java.lang.ref.WeakReference
 import java.util.ArrayList
 
+/**
+ * A group of layouts sharing the exact same shimmer effect. The layout displayed in all views using
+ * the same groups must:
+ * - Use the exact same layout, their dimensions and content must be the same.
+ * - Use the same shimmer colour, angle and duration.
+ *
+ * Not following this will yield unexpected results.
+ *
+ * @param bitmapLoader an optional parameter that cna be used to integrate with bitmap memory
+ *                     management libraries. By default this will use {@link DefaultBitmapLoader}
+ *                     which uses Android's standard Bitmap creation and recycling methods.
+ */
 class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoader = DefaultBitmapLoader()) {
 
     private var maskAnimator: ValueAnimator? = null
@@ -19,16 +31,25 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
     private var initializeSourceMaskBitmapTask: AsyncTask<Void, Void, Void>? = null
 
     private lateinit var shimmerConfig: ShimmerConfig
+    internal lateinit var maskPaint: Paint
 
     internal var maskOffsetX: Int = 0
+    internal var maskRenderedForOffsetX: Int = 0
     internal var maskRect: Rect? = null
 
     fun initialize(width: Int,
                    height: Int,
-                   shimmerColor: Int,
                    shimmerAngle: Int,
+                   shimmerColor: Int,
                    shimmerAnimationDuration: Long) {
-        shimmerConfig = ShimmerConfig(width, height, shimmerColor, shimmerAngle, shimmerAnimationDuration)
+        shimmerConfig = ShimmerConfig(width, height, shimmerAngle, shimmerAnimationDuration)
+        maskPaint = Paint().apply {
+            isAntiAlias = true
+            isDither = true
+            isFilterBitmap = true
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+            colorFilter = PorterDuffColorFilter(shimmerColor, PorterDuff.Mode.SRC_IN)
+        }
     }
 
     private fun invalidateViews(maskOffsetX: Int) {
@@ -88,14 +109,13 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
             initializeSourceMaskBitmapTask = object : AsyncTask<Void, Void, Void>() {
                 override fun doInBackground(vararg p0: Void?): Void? {
                     if (sourceMaskBitmap == null) {
-                        sourceMaskBitmap = createBitmap(context, width, height)
+                        sourceMaskBitmap = createBitmap(context, width, height, Bitmap.Config.ALPHA_8)
                         if (sourceMaskBitmap != null) {
                             val paint = Paint().apply {
-                                val edgeColor = ShimmerUtil.reduceColorAlphaValueToZero(shimmerConfig.shimmerColor)
                                 shader = LinearGradient(
                                         (-maskRect.left).toFloat(), 0f,
                                         (width + maskRect.left).toFloat(), 0f,
-                                        intArrayOf(edgeColor, shimmerConfig.shimmerColor, shimmerConfig.shimmerColor, edgeColor),
+                                        intArrayOf(Color.TRANSPARENT, Color.BLACK, Color.BLACK, Color.TRANSPARENT),
                                         floatArrayOf(0.30f, 0.47f, 0.53f, 0.70f),
                                         Shader.TileMode.CLAMP)
                             }
@@ -148,9 +168,9 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
         }
     }
 
-    private fun createBitmap(context: Context, width: Int, height: Int) =
+    private fun createBitmap(context: Context, width: Int, height: Int, config: Bitmap.Config = Bitmap.Config.ARGB_8888) =
             try {
-                bitmapLoader.get(context, width, height, Bitmap.Config.ARGB_8888)
+                bitmapLoader.get(context, width, height, config)
             } catch (_: Exception) {
                 // Don't crash if creation fails for any reason, just disable animation.
                 null
@@ -158,7 +178,6 @@ class ShimmerGroup @JvmOverloads constructor(private val bitmapLoader: BitmapLoa
 
     private class ShimmerConfig(val width: Int,
                                 val height: Int,
-                                val shimmerColor: Int,
                                 val shimmerAngle: Int,
                                 val shimmerAnimationDuration: Long)
 }

@@ -19,7 +19,6 @@ import java.util.*
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 
-
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {

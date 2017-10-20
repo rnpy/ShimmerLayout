@@ -1,10 +1,7 @@
 package xyz.peridy.shimmerlayout
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
+import android.graphics.*
 import android.os.Build
 import android.util.AttributeSet
 import android.view.View
@@ -14,17 +11,11 @@ import android.widget.FrameLayout
 class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0)
     : FrameLayout(context, attrs, defStyle) {
 
-    private val maskPaint: Paint = Paint().apply {
-        isAntiAlias = true
-        isDither = true
-        isFilterBitmap = true
-        xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-    }
     private var renderingCanvas: Canvas? = null
 
-    private val shimmerDuration: Int
-    private val shimmerColor: Int
     private val shimmerAngle: Int
+    private val shimmerColor: Int
+    private val shimmerDuration: Long
 
     var shimmerGroup: ShimmerGroup? = null
 
@@ -34,7 +25,7 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
         val a = context.theme.obtainStyledAttributes(attrs, R.styleable.ShimmerLayout, 0, 0)
         try {
             shimmerAngle = a.getInteger(R.styleable.ShimmerLayout_angle, DEFAULT_ANGLE)
-            shimmerDuration = a.getInteger(R.styleable.ShimmerLayout_animation_duration, DEFAULT_DURATION)
+            shimmerDuration = a.getInteger(R.styleable.ShimmerLayout_animation_duration, DEFAULT_DURATION).toLong()
             shimmerColor = a.getColor(R.styleable.ShimmerLayout_foreground_color, ShimmerUtil.getColor(getContext(), DEFAULT_COLOR))
         } finally {
             a.recycle()
@@ -89,7 +80,8 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
             })
             return
         }
-        shimmerGroup?.initialize(width, height, shimmerColor, shimmerAngle, shimmerDuration.toLong())
+
+        shimmerGroup?.initialize(width, height, shimmerAngle, shimmerColor, shimmerDuration)
         shimmerGroup?.startAnimator()
         shimmerGroup?.addView(this)
     }
@@ -112,23 +104,27 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
             renderingCanvas = localRenderingCanvas
         }
 
-        drawMasked(localRenderingCanvas)
+        drawMasked(shimmerGroup, localRenderingCanvas)
         canvas.save()
         canvas.clipRect(shimmerGroup.maskOffsetX, 0, shimmerGroup.maskOffsetX + localMaskRect.width(), height)
         canvas.drawBitmap(localAvailableBitmap, 0f, 0f, null)
         canvas.restore()
     }
 
-    private fun drawMasked(renderCanvas: Canvas) {
-        val shimmerGroup = shimmerGroup ?: return
+    private fun drawMasked(shimmerGroup: ShimmerGroup, renderCanvas: Canvas) {
+        if (shimmerGroup.maskRenderedForOffsetX == shimmerGroup.maskOffsetX) {
+            // This is called on UI thread, there's no concurrency issue here, as only a single
+            // layout will draw the mask at once.
+            return
+        }
         val localMaskBitmap = shimmerGroup.initializeSourceMaskBitmap(context) ?: return
-
         renderCanvas.save()
         renderCanvas.clipRect(shimmerGroup.maskOffsetX, 0, shimmerGroup.maskOffsetX + localMaskBitmap.width, height)
 
         super.dispatchDraw(renderCanvas)
-        renderCanvas.drawBitmap(localMaskBitmap, shimmerGroup.maskOffsetX.toFloat(), 0f, maskPaint)
+        renderCanvas.drawBitmap(localMaskBitmap, shimmerGroup.maskOffsetX.toFloat(), 0f, shimmerGroup.maskPaint)
         renderCanvas.restore()
+        shimmerGroup.maskRenderedForOffsetX = shimmerGroup.maskOffsetX
     }
 
     companion object {

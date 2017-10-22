@@ -32,7 +32,6 @@ class MainActivity : RxActivity() {
             if (adapter == null) {
                 layoutManager = LinearLayoutManager(this@MainActivity)
                 adapter = createAdapter()
-                DebugInfo(this@MainActivity.findViewById(R.id.counter_view))
             }
         }
     }
@@ -48,7 +47,7 @@ class MainActivity : RxActivity() {
                     Color.parseColor("#e40303"))
 
             // All shimmer views in adapter will share the same bitmaps
-            private val shimmerGroup = ShimmerGroup(ShimmerDemoGlideBitmapLoader())
+            private val shimmerGroup = ShimmerGroup()
             private val data: Array<Data>
 
             private val VIEW_HOLDER_TYPE_LOADED = 0

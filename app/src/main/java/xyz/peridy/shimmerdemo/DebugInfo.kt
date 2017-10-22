@@ -24,6 +24,9 @@ class DebugInfo(view: View) {
     private fun formatString(label: String, value: Int): String = "bitmap.$label : $value"
 
     init {
+        release = 0
+        get = 0
+        fail = 0
         handler.post(runnable)
         button.setOnClickListener {
             simulateLowMemory = !simulateLowMemory

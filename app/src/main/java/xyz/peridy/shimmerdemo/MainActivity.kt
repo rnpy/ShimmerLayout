@@ -1,6 +1,5 @@
 package xyz.peridy.shimmerdemo
 
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
@@ -18,9 +17,10 @@ import xyz.peridy.shimmerlayout.ShimmerLayout
 import java.util.*
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import com.trello.rxlifecycle2.components.RxActivity
+import com.trello.rxlifecycle2.kotlin.bindToLifecycle
 
-class MainActivity : AppCompatActivity() {
-
+class MainActivity : RxActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -29,17 +29,30 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         findViewById<RecyclerView>(R.id.recycler_view).apply {
-            layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = createAdapter()
+            if (adapter == null) {
+                layoutManager = LinearLayoutManager(this@MainActivity)
+                adapter = createAdapter()
+                DebugInfo(this@MainActivity.findViewById(R.id.counter_view))
+            }
         }
-        DebugInfo(findViewById(R.id.counter_view))
     }
 
     private fun createAdapter(): RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            private val colours = intArrayOf(
+                    Color.parseColor("#750787"),
+                    Color.parseColor("#004dff"),
+                    Color.parseColor("#008026"),
+                    Color.parseColor("#ffed00"),
+                    Color.parseColor("#ff8c00"),
+                    Color.parseColor("#e40303"))
+
             // All shimmer views in adapter will share the same bitmaps
             private val shimmerGroup = ShimmerGroup(ShimmerDemoGlideBitmapLoader())
             private val data: Array<Data>
+
+            private val VIEW_HOLDER_TYPE_LOADED = 0
+            private val VIEW_HOLDER_TYPE_LOADING = 1
 
             private inner class LoadingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
                 val shimmerLayout: ShimmerLayout = itemView.findViewById(R.id.shimmer_layout)
@@ -49,9 +62,6 @@ class MainActivity : AppCompatActivity() {
                 val textView: TextView = itemView.findViewById(R.id.text_view)
                 val imageView: ImageView = itemView.findViewById(R.id.image_view)
             }
-
-            private val VIEW_HOLDER_TYPE_LOADED = 0
-            private val VIEW_HOLDER_TYPE_LOADING = 1
 
             override fun onViewRecycled(holder: RecyclerView.ViewHolder?) {
                 if (holder is LoadingViewHolder) {
@@ -64,7 +74,9 @@ class MainActivity : AppCompatActivity() {
                 val layoutId = if (viewType == VIEW_HOLDER_TYPE_LOADING) R.layout.cell_loading else R.layout.cell_loaded
                 val view = LayoutInflater.from(parent.context).inflate(layoutId, parent, false)
                 return if (viewType == VIEW_HOLDER_TYPE_LOADING) {
-                    LoadingViewHolder(view).apply { shimmerLayout.shimmerGroup = shimmerGroup }
+                    LoadingViewHolder(view).apply {
+                        shimmerLayout.shimmerGroup = shimmerGroup
+                    }
                 } else {
                     LoadedViewHolder(view)
                 }
@@ -77,7 +89,8 @@ class MainActivity : AppCompatActivity() {
                         holder.imageView.setImageDrawable(ColorDrawable(Color.GREEN))
                     }
                     VIEW_HOLDER_TYPE_LOADING -> {
-                        (holder as LoadingViewHolder).shimmerLayout.visibility = View.VISIBLE
+                        (holder as LoadingViewHolder).shimmerLayout.shimmerColor = colours[position % 6]
+                        holder.shimmerLayout.visibility = View.VISIBLE
                     }
                 }
             }
@@ -100,6 +113,7 @@ class MainActivity : AppCompatActivity() {
                         }
                         .subscribeOn(Schedulers.single())
                         .observeOn(AndroidSchedulers.mainThread())
+                        .bindToLifecycle(this@MainActivity)
                         .forEach {
                             it.data = it.position
                             adapter.notifyItemChanged(it.position)

@@ -6,7 +6,7 @@ Lots of things
 
 
 
-Based on [Facebook Shimmer for Android](https://github.com/facebook/shimmer-android)
+Based on [Facebook Shimmer for Android](https://github.com/facebook/shimmer-android) and [Supercharge ShimmerLayout](https://github.com/team-supercharge/ShimmerLayout)
 
 ## License
 

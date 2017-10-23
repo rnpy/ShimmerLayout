@@ -1,5 +1,6 @@
 package xyz.peridy.shimmerdemo
 
+import android.graphics.*
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
@@ -15,7 +16,6 @@ import io.reactivex.schedulers.Schedulers
 import xyz.peridy.shimmerlayout.ShimmerGroup
 import xyz.peridy.shimmerlayout.ShimmerLayout
 import java.util.*
-import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import com.trello.rxlifecycle2.components.RxActivity
 import com.trello.rxlifecycle2.kotlin.bindToLifecycle
@@ -38,13 +38,6 @@ class MainActivity : RxActivity() {
 
     private fun createAdapter(): RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-            private val colours = intArrayOf(
-                    Color.parseColor("#750787"),
-                    Color.parseColor("#004dff"),
-                    Color.parseColor("#008026"),
-                    Color.parseColor("#ffed00"),
-                    Color.parseColor("#ff8c00"),
-                    Color.parseColor("#e40303"))
 
             // All shimmer views in adapter will share the same bitmaps
             private val shimmerGroup = ShimmerGroup()
@@ -88,8 +81,9 @@ class MainActivity : RxActivity() {
                         holder.imageView.setImageDrawable(ColorDrawable(Color.GREEN))
                     }
                     VIEW_HOLDER_TYPE_LOADING -> {
-                        (holder as LoadingViewHolder).shimmerLayout.shimmerColor = colours[position % 6]
-                        holder.shimmerLayout.visibility = View.VISIBLE
+                        with((holder as LoadingViewHolder).shimmerLayout) {
+                            visibility = View.VISIBLE
+                        }
                     }
                 }
             }

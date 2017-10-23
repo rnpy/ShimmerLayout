@@ -1,12 +1,17 @@
-### ShimmerLayout
+# ShimmerLayout
+
+Shimmer stuff without Bitmaps, with optional synchronization of multiple view animations.
 
 ## TODO
+- clean code
+- add & document missing attributes
+- add custom interpolators demo to sample app
+- write things after that About title below, and before that TODO above
+- release
 
-Lots of things
+## About
 
-
-
-Based on [Facebook Shimmer for Android](https://github.com/facebook/shimmer-android) and [Supercharge ShimmerLayout](https://github.com/team-supercharge/ShimmerLayout)
+Inspired by [Facebook Shimmer for Android](https://github.com/facebook/shimmer-android) and [Supercharge ShimmerLayout](https://github.com/team-supercharge/ShimmerLayout).
 
 ## License
 

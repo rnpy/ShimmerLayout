@@ -18,20 +18,32 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
         xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
     }
 
-    private val shimmerAngle: Int
-    private val shimmerDuration: Long
-    private val shimmerWidth = DEFAULT_SHADOW_WIDTH
-    private val shimmerCenterWidth = DEFAULT_CENTER_WIDTH
+    // Interpolators, can be used to customize animation
+    var shaderInterpolator: ShaderInterpolator? = null
+    var colorInterpolator: ColorInterpolator? = null
+    var matrixInterpolator: MatrixInterpolator? = object : MatrixInterpolator {
+        // Default translation from left to right
+        // TODO: should depend on angle/height?
+        override fun getMatrixForOffset(offsetPercent: Float) = Matrix().apply {
+            setTranslate(offsetPercent * width * 1.2f - width * 0.6f, 0f)
+        }
+    }
 
-    private var _shimmerColor: Int = 0
+    // Optional group to synchronize multiple shimmer layouts
+    var shimmerGroup: ShimmerGroup? = null
+
+    var shimmerAngle: Int
+    var shimmerDuration: Long
+    var shimmerWidth = DEFAULT_SHADOW_WIDTH
+    var shimmerCenterWidth = DEFAULT_CENTER_WIDTH
+
+    private var _shimmerColor = 0
     var shimmerColor
         set(value) {
             maskPaint.colorFilter = PorterDuffColorFilter(value, PorterDuff.Mode.SRC_IN)
             _shimmerColor = value
         }
         get() = _shimmerColor
-
-    var shimmerGroup: ShimmerGroup? = null
 
     init {
         setWillNotDraw(false)
@@ -68,6 +80,11 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
         }
     }
 
+    internal fun stopShimmerAnimation() {
+        shimmerGroup?.removeView(this)
+        animating = false
+    }
+
     private fun ensureAnimationStarted() {
         if (!animating && width > 0 && visibility == View.VISIBLE) {
             if (shimmerGroup == null) {
@@ -77,11 +94,6 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
             shimmerGroup?.addView(this, shimmerDuration)
             animating = true
         }
-    }
-
-    internal fun stopShimmerAnimation() {
-        shimmerGroup?.removeView(this)
-        animating = false
     }
 
     private fun dispatchDrawUsingPaint(canvas: Canvas) {
@@ -94,17 +106,53 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
             canvas.saveLayer(null, null, Canvas.ALL_SAVE_FLAG)
         }
         super.dispatchDraw(canvas)
-        val translateX = shimmerGroup.offsetX * width * 1.5f - width * 0.75f // TODO: should depend on angle
-        maskPaint.shader.setLocalMatrix(Matrix().apply { setTranslate(translateX, 0f) })
+        customizePaint(shimmerGroup.offsetPercent)
         canvas.drawPaint(maskPaint)
         canvas.restore()
+    }
+
+    private fun customizePaint(offsetPercent: Float) {
+        shaderInterpolator?.let { maskPaint.shader = it.getShaderForOffset(offsetPercent) }
+        colorInterpolator?.let { shimmerColor = it.getColorForOffset(offsetPercent) }
+        matrixInterpolator?.let { maskPaint.shader.setLocalMatrix(it.getMatrixForOffset(offsetPercent)) }
+    }
+
+    interface ShaderInterpolator {
+        /**
+         * Gets the {@link Shader} to use for current animation offset. Default uses a {@link LinearGradient}
+         *
+         * @param offsetPercent value between 0 and 1 indicating animation progress
+         * @return Shader to use for current offset
+         */
+        fun getShaderForOffset(offsetPercent: Float): Shader
+    }
+
+    interface ColorInterpolator {
+        /**
+         * Gets the color to use for current animation offset. Default is null, color remains the same.
+         *
+         * @param offsetPercent value between 0 and 1 indicating animation progress
+         * @return Color to use for current offset, as a 32-bit int value
+         */
+        fun getColorForOffset(offsetPercent: Float): Int
+    }
+
+    interface MatrixInterpolator {
+        /**
+         * Gets the {@link Matrix} to use for current animation offset. This matrix will be used to
+         * transform the shader.
+         *
+         * @param offsetPercent value between 0 and 1 indicating animation progress
+         * @return Matrix to use to transform shader
+         */
+        fun getMatrixForOffset(offsetPercent: Float): Matrix
     }
 
     companion object {
         private val DEFAULT_DURATION = 1200
         private val DEFAULT_ANGLE = 20
         private val DEFAULT_COLOR = R.color.default_foreground_color
-        private val DEFAULT_CENTER_WIDTH = 0.01f // TODO: move this to attrs
+        private val DEFAULT_CENTER_WIDTH = 0.01f // TODO: move this to attrs?
         private val DEFAULT_SHADOW_WIDTH = 0.07f
     }
 }

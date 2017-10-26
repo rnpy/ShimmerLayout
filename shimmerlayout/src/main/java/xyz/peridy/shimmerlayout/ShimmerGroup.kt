@@ -1,6 +1,7 @@
 package xyz.peridy.shimmerlayout
 
 import android.animation.ValueAnimator
+import android.os.Handler
 import android.view.View
 import java.lang.ref.WeakReference
 import java.util.ArrayList
@@ -15,7 +16,7 @@ class ShimmerGroup {
     private val animatedViews = ArrayList<WeakReference<ShimmerLayout>>()
     internal var offsetPercent = 0f
 
-    internal fun addView(shimmerLayout: ShimmerLayout, animationDuration:Long) {
+    internal fun addView(shimmerLayout: ShimmerLayout, animationDuration: Long) {
         animatedViews.removeAll { it.get() == shimmerLayout || it.get() == null }
         animatedViews.add(WeakReference(shimmerLayout))
         startAnimator(animationDuration)
@@ -24,13 +25,19 @@ class ShimmerGroup {
     internal fun removeView(shimmerLayout: ShimmerLayout) {
         animatedViews.removeAll { it.get() == shimmerLayout || it.get() == null }
         if (valueAnimator?.isStarted == true && animatedViews.isEmpty()) {
-            valueAnimator?.removeAllUpdateListeners()
-            valueAnimator?.end()
-            valueAnimator = null
+            Handler().postDelayed({
+                // Wait a short time after the last animated view is removed to stop animator, this
+                // makes adding another view right after much smoother.
+                if (animatedViews.isEmpty()) {
+                    valueAnimator?.removeAllUpdateListeners()
+                    valueAnimator?.end()
+                    valueAnimator = null
+                }
+            }, 500)
         }
     }
 
-    private fun startAnimator(animationDuration:Long) {
+    private fun startAnimator(animationDuration: Long) {
         if (valueAnimator != null) {
             return
         }

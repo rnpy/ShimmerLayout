@@ -4,5 +4,7 @@
         <attr name="foreground_color" format="color|reference"/>
         <attr name="animation_duration" format="integer|reference"/>
         <attr name="angle" format="integer|reference"/>
+        <attr name="shimmer_width" format="dimension|reference"/>
+        <attr name="shimmer_center_width" format="dimension|reference"/>
     </declare-styleable>
 </resources>

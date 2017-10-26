@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="shimmer_width_default">48dp</dimen>
+    <dimen name="shimmer_width_center_default">4dp</dimen>
+</resources>

@@ -10,6 +10,7 @@ import android.widget.FrameLayout
 class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0)
     : FrameLayout(context, attrs, defStyle) {
 
+    private var translateRange = 0
     private var animating = false // TODO: in group?
     private val maskPaint = Paint().apply {
         isAntiAlias = true
@@ -23,9 +24,10 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
     var colorInterpolator: ColorInterpolator? = null
     var matrixInterpolator: MatrixInterpolator? = object : MatrixInterpolator {
         // Default translation from left to right
-        // TODO: should depend on angle/height?
         override fun getMatrixForOffset(offsetPercent: Float) = Matrix().apply {
-            setTranslate(offsetPercent * width * 1.2f - width * 0.6f, 0f)
+            // animate from -1 to +1, max dimension will define the shimmer Paint size.
+            val translateX = (offsetPercent * 2 - 1) * translateRange
+            setTranslate(translateX, 0f)
         }
     }
 
@@ -34,8 +36,8 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
 
     var shimmerAngle: Int
     var shimmerDuration: Long
-    var shimmerWidth = DEFAULT_SHADOW_WIDTH
-    var shimmerCenterWidth = DEFAULT_CENTER_WIDTH
+    var shimmerWidth: Int
+    var shimmerCenterWidth: Int
 
     private var _shimmerColor = 0
     var shimmerColor
@@ -52,6 +54,8 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
             shimmerAngle = attributes.getInteger(R.styleable.ShimmerLayout_angle, DEFAULT_ANGLE)
             shimmerDuration = attributes.getInteger(R.styleable.ShimmerLayout_animation_duration, DEFAULT_DURATION).toLong()
             shimmerColor = attributes.getColor(R.styleable.ShimmerLayout_foreground_color, ShimmerUtil.getColor(getContext(), DEFAULT_COLOR))
+            shimmerWidth = attributes.getDimensionPixelSize(R.styleable.ShimmerLayout_shimmer_width, resources.getDimensionPixelSize(DEFAULT_SHADOW_WIDTH))
+            shimmerCenterWidth = attributes.getDimensionPixelSize(R.styleable.ShimmerLayout_shimmer_width, resources.getDimensionPixelSize(DEFAULT_CENTER_WIDTH))
         } finally {
             attributes.recycle()
         }
@@ -90,7 +94,10 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
             if (shimmerGroup == null) {
                 shimmerGroup = ShimmerGroup()
             }
-            maskPaint.shader = ShimmerUtil.getShimmerShader(width, shimmerAngle.toDouble(), shimmerWidth, shimmerCenterWidth)
+            if (shaderInterpolator == null) {
+                maskPaint.shader = ShimmerUtil.getShimmerShader(width, shimmerAngle.toDouble(), shimmerWidth, shimmerCenterWidth)
+            }
+            translateRange = Math.max(width, height)
             shimmerGroup?.addView(this, shimmerDuration)
             animating = true
         }
@@ -152,7 +159,7 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
         private val DEFAULT_DURATION = 1200
         private val DEFAULT_ANGLE = 20
         private val DEFAULT_COLOR = R.color.default_foreground_color
-        private val DEFAULT_CENTER_WIDTH = 0.01f // TODO: move this to attrs?
-        private val DEFAULT_SHADOW_WIDTH = 0.07f
+        private val DEFAULT_CENTER_WIDTH = R.dimen.shimmer_width_center_default
+        private val DEFAULT_SHADOW_WIDTH = R.dimen.shimmer_width_default
     }
 }

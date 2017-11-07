@@ -17,6 +17,7 @@ import xyz.peridy.shimmerlayout.ShimmerGroup
 import xyz.peridy.shimmerlayout.ShimmerLayout
 import java.util.*
 import android.graphics.drawable.ColorDrawable
+import android.widget.Button
 import com.trello.rxlifecycle2.components.RxActivity
 import com.trello.rxlifecycle2.kotlin.bindToLifecycle
 
@@ -29,11 +30,12 @@ class MainActivity : RxActivity() {
     override fun onStart() {
         super.onStart()
         findViewById<RecyclerView>(R.id.recycler_view).apply {
-            if (adapter == null) {
-                layoutManager = LinearLayoutManager(this@MainActivity)
-                adapter = createAdapter()
-            }
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = createAdapter()
         }
+        findViewById<Button>(R.id.button).setOnClickListener({
+            InterpolatorDemoActivity.start(this@MainActivity)
+        })
     }
 
     private fun createAdapter(): RecyclerView.Adapter<RecyclerView.ViewHolder> {

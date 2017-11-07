@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<xyz.peridy.shimmerlayout.ShimmerLayout android:id="@+id/shimmer_layout"
+    android:layout_height="wrap_content"
+    android:layout_width="wrap_content"
+    android:layout_gravity="center"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <LinearLayout
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:padding="36dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/text_view"
+            android:fontFamily="sans-serif-thin"
+            android:gravity="center"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:text="@string/please_wait_1"
+            android:minLines="3"
+            android:maxLines="3"
+            android:textAppearance="@style/Base.TextAppearance.AppCompat.Display1" />
+
+        <ProgressBar
+            android:layout_marginTop="16dp"
+            android:indeterminateOnly="true"
+            android:layout_gravity="center"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content" />
+    </LinearLayout>
+
+</xyz.peridy.shimmerlayout.ShimmerLayout>

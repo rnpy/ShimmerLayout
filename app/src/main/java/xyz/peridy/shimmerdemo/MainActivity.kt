@@ -21,6 +21,9 @@ import android.widget.Button
 import com.trello.rxlifecycle2.components.RxActivity
 import com.trello.rxlifecycle2.kotlin.bindToLifecycle
 
+private const val VIEW_HOLDER_TYPE_LOADED = 0
+private const val VIEW_HOLDER_TYPE_LOADING = 1
+
 class MainActivity : RxActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,13 +32,13 @@ class MainActivity : RxActivity() {
 
     override fun onStart() {
         super.onStart()
-        findViewById<RecyclerView>(R.id.recycler_view).apply {
+        with(findViewById<RecyclerView>(R.id.recycler_view)) {
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = createAdapter()
         }
-        findViewById<Button>(R.id.button).setOnClickListener({
+        findViewById<Button>(R.id.button).setOnClickListener {
             InterpolatorDemoActivity.start(this@MainActivity)
-        })
+        }
     }
 
     private fun createAdapter(): RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -44,9 +47,6 @@ class MainActivity : RxActivity() {
             // All shimmer views in adapter will share the same bitmaps
             private val shimmerGroup = ShimmerGroup()
             private val data: Array<Data>
-
-            private val VIEW_HOLDER_TYPE_LOADED = 0
-            private val VIEW_HOLDER_TYPE_LOADING = 1
 
             private inner class LoadingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
                 val shimmerLayout: ShimmerLayout = itemView.findViewById(R.id.shimmer_layout)
@@ -58,9 +58,7 @@ class MainActivity : RxActivity() {
             }
 
             override fun onViewRecycled(holder: RecyclerView.ViewHolder?) {
-                if (holder is LoadingViewHolder) {
-                    holder.shimmerLayout.visibility = View.GONE
-                }
+                (holder as? LoadingViewHolder)?.shimmerLayout?.visibility = View.GONE
                 super.onViewRecycled(holder)
             }
 
@@ -79,7 +77,7 @@ class MainActivity : RxActivity() {
             override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
                 when (getItemViewType(position)) {
                     VIEW_HOLDER_TYPE_LOADED -> {
-                        (holder as LoadedViewHolder).textView.text = "loaded element $position"
+                        (holder as LoadedViewHolder).textView.text = getString(R.string.loaded_element, position)
                         holder.imageView.setImageDrawable(ColorDrawable(Color.GREEN))
                     }
                     VIEW_HOLDER_TYPE_LOADING -> {

@@ -10,42 +10,65 @@ import android.widget.FrameLayout
 class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0)
     : FrameLayout(context, attrs, defStyle) {
 
-    private var translateRange = 0
-    private var animating = false // TODO: in group?
-    private val maskPaint = Paint().apply {
-        isAntiAlias = true
-        isDither = true
-        isFilterBitmap = true
-        xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
-    }
+    /**
+     * Optional group to synchronize multiple [ShimmerLayout] animations
+     */
+    var shimmerGroup: ShimmerGroup? = null
 
-    // Interpolators, can be used to customize animation
-    var shaderInterpolator: ShaderInterpolator? = null
-    var colorInterpolator: ColorInterpolator? = null
-    var matrixInterpolator: MatrixInterpolator? = object : MatrixInterpolator {
+    /**
+     * Default shader angle, only used if [shaderInterpolator] is null
+     */
+    var shimmerAngle: Int
+    /**
+     * Default shader width, only used if [shaderInterpolator] is null
+     */
+    var shimmerWidth: Int
+    /**
+     * Default shader center width, only used if [shaderInterpolator] is null
+     */
+    var shimmerCenterWidth: Int
+
+    /**
+     * Animation duration
+     */
+    var shimmerDuration: Long
+    /**
+     * Shimmer color, used as filter on shader
+     */
+    var shimmerColor = 0
+        set(value) {
+            maskPaint.colorFilter = PorterDuffColorFilter(value, PorterDuff.Mode.SRC_IN)
+            field = value
+        }
+
+    /**
+     * Gets the [Shader] to use for current animation value. Default uses a [LinearGradient]
+     */
+    var shaderInterpolator: Interpolator<Shader>? = null
+    /**
+     * Gets the color to use for current animation value. Default is null, color remains the same.
+     */
+    var colorInterpolator: Interpolator<Int>? = null
+    /**
+     * [Interpolator] used to get the [Matrix] to use for each animation value. This matrix will
+     * be used to transform the shader on each [dispatchDraw] operation.
+     */
+    var matrixInterpolator: Interpolator<Matrix>? = object : Interpolator<Matrix> {
         // Default translation from left to right
-        override fun getMatrixForOffset(offsetPercent: Float) = Matrix().apply {
+        override fun getInterpolation(input: Float) = Matrix().apply {
             // animate from -1 to +1, max dimension will define the shimmer Paint size.
-            val translateX = (offsetPercent * 2 - 1) * translateRange
+            val translateX = (input * 2 - 1) * translateRange
             setTranslate(translateX, 0f)
         }
     }
 
-    // Optional group to synchronize multiple shimmer layouts
-    var shimmerGroup: ShimmerGroup? = null
-
-    var shimmerAngle: Int
-    var shimmerDuration: Long
-    var shimmerWidth: Int
-    var shimmerCenterWidth: Int
-
-    private var _shimmerColor = 0
-    var shimmerColor
-        set(value) {
-            maskPaint.colorFilter = PorterDuffColorFilter(value, PorterDuff.Mode.SRC_IN)
-            _shimmerColor = value
-        }
-        get() = _shimmerColor
+    private var translateRange = 0
+    private var animating = false
+    private val maskPaint = Paint().apply {
+        isDither = true
+        isFilterBitmap = true
+        xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
+    }
 
     init {
         setWillNotDraw(false)
@@ -113,51 +136,50 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
             canvas.saveLayer(null, null, Canvas.ALL_SAVE_FLAG)
         }
         super.dispatchDraw(canvas)
-        customizePaint(shimmerGroup.offsetPercent)
+        customizePaint(shimmerGroup.animatedValue)
         canvas.drawPaint(maskPaint)
         canvas.restore()
     }
 
-    private fun customizePaint(offsetPercent: Float) {
-        shaderInterpolator?.let { maskPaint.shader = it.getShaderForOffset(offsetPercent) }
-        colorInterpolator?.let { shimmerColor = it.getColorForOffset(offsetPercent) }
-        matrixInterpolator?.let { maskPaint.shader.setLocalMatrix(it.getMatrixForOffset(offsetPercent)) }
+    private fun customizePaint(animatedValue: Float) {
+        shaderInterpolator?.let { maskPaint.shader = it.getInterpolation(animatedValue) }
+        colorInterpolator?.let { shimmerColor = it.getInterpolation(animatedValue) }
+        matrixInterpolator?.let { maskPaint.shader.setLocalMatrix(it.getInterpolation(animatedValue)) }
     }
 
-    interface ShaderInterpolator {
+    interface Interpolator<out T> {
         /**
-         * Gets the {@link Shader} to use for current animation offset. Default uses a {@link LinearGradient}
+         * Maps a value representing the elapsed fraction of an animation to a value that represents
+         * the interpolated [T].
          *
-         * @param offsetPercent value between 0 and 1 indicating animation progress
-         * @return Shader to use for current offset
+         * @param input value between 0 and 1 indicating animation progress
+         * @return [T] value for [input]
          */
-        fun getShaderForOffset(offsetPercent: Float): Shader
+        fun getInterpolation(input: Float): T
     }
 
-    interface ColorInterpolator {
-        /**
-         * Gets the color to use for current animation offset. Default is null, color remains the same.
-         *
-         * @param offsetPercent value between 0 and 1 indicating animation progress
-         * @return Color to use for current offset, as a 32-bit int value
-         */
-        fun getColorForOffset(offsetPercent: Float): Int
+    // convenience methods to simplify interpolator declaration from kotlin
+    inline fun setMatrixInterpolator(crossinline value: (Float) -> Matrix) {
+        matrixInterpolator = object : Interpolator<Matrix> {
+            override fun getInterpolation(input: Float) = value.invoke(input)
+        }
     }
 
-    interface MatrixInterpolator {
-        /**
-         * Gets the {@link Matrix} to use for current animation offset. This matrix will be used to
-         * transform the shader.
-         *
-         * @param offsetPercent value between 0 and 1 indicating animation progress
-         * @return Matrix to use to transform shader
-         */
-        fun getMatrixForOffset(offsetPercent: Float): Matrix
+    inline fun setShaderInterpolator(crossinline value: (Float) -> Shader) {
+        shaderInterpolator = object : Interpolator<Shader> {
+            override fun getInterpolation(input: Float) = value.invoke(input)
+        }
+    }
+
+    inline fun setColorInterpolator(crossinline value: (Float) -> Int) {
+        colorInterpolator = object : Interpolator<Int> {
+            override fun getInterpolation(input: Float) = value.invoke(input)
+        }
     }
 
     companion object {
-        private val DEFAULT_DURATION = 1200
-        private val DEFAULT_ANGLE = 20
+        private const val DEFAULT_DURATION = 1200
+        private const val DEFAULT_ANGLE = 20
         private val DEFAULT_COLOR = R.color.default_foreground_color
         private val DEFAULT_CENTER_WIDTH = R.dimen.shimmer_width_center_default
         private val DEFAULT_SHADOW_WIDTH = R.dimen.shimmer_width_default

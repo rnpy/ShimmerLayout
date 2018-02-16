@@ -18,6 +18,7 @@ import xyz.peridy.shimmerlayout.ShimmerLayout
 class InterpolatorDemoActivity : RxActivity() {
 
     private var currentTextIndex = 0
+    private val textView: TextView by lazy { findViewById<TextView>(R.id.text_view) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,33 +34,32 @@ class InterpolatorDemoActivity : RxActivity() {
     /**
      * Customize shimmer effect using interpolators, change colour and default translation behaviour
      */
-    private fun customizeShimmer() {
-        val shimmerLayout = findViewById<ShimmerLayout>(R.id.shimmer_layout)
+    private fun customizeShimmer() = with(findViewById<ShimmerLayout>(R.id.shimmer_layout)) {
         val point = Point()
         windowManager.defaultDisplay.getSize(point)
 
-        shimmerLayout.shimmerDuration = 4500
-        shimmerLayout.shimmerWidth = point.x
-        shimmerLayout.colorInterpolator = object : ShimmerLayout.ColorInterpolator {
+        shimmerDuration = 4500
+        shimmerWidth = point.x
+        shimmerAngle = 90
+
+        // interpolator can be declared using a custom class
+        colorInterpolator = object : ShimmerLayout.Interpolator<Int> {
             // Get current colour, rotate between 3 values using ArgbEvaluator
             val evaluator = ArgbEvaluator()
             val colours = arrayOf("#800000", "#008000", "#000080").map { Color.parseColor(it) }
             val count = colours.size
-            override fun getColorForOffset(offsetPercent: Float): Int {
-                val arrayPosition = (offsetPercent * count).toInt() % count
-                val offset = offsetPercent * count % 1.0f
+
+            override fun getInterpolation(input: Float): Int {
+                val arrayPosition = (input * count).toInt() % count
+                val offset = input * count % 1.0f
                 return evaluator.evaluate(offset, colours[arrayPosition], colours[(arrayPosition + 1) % count]) as Int
             }
         }
-        shimmerLayout.matrixInterpolator = object : ShimmerLayout.MatrixInterpolator {
-            // Replace default behaviour (translation) with a rotation
-            override fun getMatrixForOffset(offsetPercent: Float) = Matrix().apply {
-                val angleOffset = if (offsetPercent < 0.5) {
-                    offsetPercent * 2
-                } else {
-                    1f - (offsetPercent - 0.5f) * 2f
-                }
-                setRotate(-(angleOffset * 2 - 1) * 90)
+
+        // or using kotlin convenience method
+        setMatrixInterpolator { input ->
+            Matrix().apply {
+                setRotate(input * 360)
             }
         }
     }
@@ -68,8 +68,6 @@ class InterpolatorDemoActivity : RxActivity() {
      * Animate TextView, shimmer can be applied to any view content, even animated
      */
     private fun animateTextView() {
-        val textView = findViewById<TextView>(R.id.text_view)
-
         // Animate TextView out (+ fade out)
         textView.animate()
                 .alpha(0f)
@@ -99,9 +97,7 @@ class InterpolatorDemoActivity : RxActivity() {
         override fun onAnimationRepeat(animation: Animator?) {
         }
 
-        override fun onAnimationEnd(animation: Animator?) {
-            onEnd()
-        }
+        override fun onAnimationEnd(animation: Animator?) = onEnd()
 
         override fun onAnimationCancel(animation: Animator?) {
         }

@@ -7,14 +7,14 @@ import java.lang.ref.WeakReference
 import java.util.ArrayList
 
 /**
- * A group of shimmer layouts to synchronize. All layouts using the same group will share the same
- * {@link ValueAnimator}. If those layouts do not use the same animation duration, the duration will
+ * A group of [ShimmerLayout] to synchronize. All layouts using the same group will share the same
+ * [ValueAnimator]. If those layouts do not use the same animation duration, the duration will
  * be set by the first view to animate (don't do that).
  */
 class ShimmerGroup {
     private var valueAnimator: ValueAnimator? = null
     private val animatedViews = ArrayList<WeakReference<ShimmerLayout>>()
-    internal var offsetPercent = 0f
+    internal var animatedValue = 0f
 
     internal fun addView(shimmerLayout: ShimmerLayout, animationDuration: Long) {
         animatedViews.removeAll { it.get() == shimmerLayout || it.get() == null }
@@ -49,19 +49,18 @@ class ShimmerGroup {
         }
     }
 
-    private fun invalidateViews(offsetXPercent: Float) {
-        this.offsetPercent = offsetXPercent
+    private fun invalidateViews(animatedValue: Float) {
+        this.animatedValue = animatedValue
 
-        animatedViews.toTypedArray().forEach {
-            val view = it.get()
-            if (view != null) {
-                if (view.visibility == View.VISIBLE) {
-                    view.invalidate()
-                } else {
-                    view.stopShimmerAnimation()
-                }
-            } else {
-                animatedViews.remove(it)
+        with(animatedViews.iterator()) {
+            forEach {
+                it.get()?.let { view ->
+                    if (view.visibility == View.VISIBLE) {
+                        view.invalidate()
+                    } else {
+                        view.stopShimmerAnimation()
+                    }
+                } ?: remove()
             }
         }
     }

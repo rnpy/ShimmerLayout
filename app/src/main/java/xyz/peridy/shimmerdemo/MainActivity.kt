@@ -1,25 +1,24 @@
 package xyz.peridy.shimmerdemo
 
-import android.graphics.*
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import com.trello.rxlifecycle2.components.RxActivity
+import com.trello.rxlifecycle2.kotlin.bindToLifecycle
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
-
 import xyz.peridy.shimmerlayout.ShimmerGroup
 import xyz.peridy.shimmerlayout.ShimmerLayout
 import java.util.*
-import android.graphics.drawable.ColorDrawable
-import android.widget.Button
-import com.trello.rxlifecycle2.components.RxActivity
-import com.trello.rxlifecycle2.kotlin.bindToLifecycle
 
 private const val VIEW_HOLDER_TYPE_LOADED = 0
 private const val VIEW_HOLDER_TYPE_LOADING = 1
@@ -36,20 +35,24 @@ class MainActivity : RxActivity() {
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = createAdapter()
         }
-        findViewById<Button>(R.id.button).setOnClickListener {
-            InterpolatorDemoActivity.start(this@MainActivity)
+        findViewById<Button>(R.id.button_evaluators).setOnClickListener {
+            EvaluatorsDemoActivity.start(this@MainActivity)
+        }
+        findViewById<Button>(R.id.button_shaders).setOnClickListener {
+            ShadersDemoActivity.start(this@MainActivity)
         }
     }
 
     private fun createAdapter(): RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-
             // All shimmer views in adapter will share the same bitmaps
-            private val shimmerGroup = ShimmerGroup()
+            private val adapterShimmerGroup = ShimmerGroup()
             private val data: Array<Data>
 
             private inner class LoadingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-                val shimmerLayout: ShimmerLayout = itemView.findViewById(R.id.shimmer_layout)
+                val shimmerLayout = itemView.findViewById<ShimmerLayout>(R.id.shimmer_layout).apply {
+                    shimmerGroup = adapterShimmerGroup
+                }
             }
 
             private inner class LoadedViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -66,9 +69,7 @@ class MainActivity : RxActivity() {
                 val layoutId = if (viewType == VIEW_HOLDER_TYPE_LOADING) R.layout.cell_loading else R.layout.cell_loaded
                 val view = LayoutInflater.from(parent.context).inflate(layoutId, parent, false)
                 return if (viewType == VIEW_HOLDER_TYPE_LOADING) {
-                    LoadingViewHolder(view).apply {
-                        shimmerLayout.shimmerGroup = shimmerGroup
-                    }
+                    LoadingViewHolder(view)
                 } else {
                     LoadedViewHolder(view)
                 }
@@ -76,14 +77,12 @@ class MainActivity : RxActivity() {
 
             override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
                 when (getItemViewType(position)) {
-                    VIEW_HOLDER_TYPE_LOADED -> {
-                        (holder as LoadedViewHolder).textView.text = getString(R.string.loaded_element, position)
-                        holder.imageView.setImageDrawable(ColorDrawable(Color.GREEN))
+                    VIEW_HOLDER_TYPE_LOADED -> with(holder as LoadedViewHolder) {
+                        textView.text = getString(R.string.loaded_element, position)
+                        imageView.setImageDrawable(ColorDrawable(Color.GREEN))
                     }
-                    VIEW_HOLDER_TYPE_LOADING -> {
-                        with((holder as LoadingViewHolder).shimmerLayout) {
-                            visibility = View.VISIBLE
-                        }
+                    VIEW_HOLDER_TYPE_LOADING -> with(holder as LoadingViewHolder) {
+                        shimmerLayout.visibility = View.VISIBLE
                     }
                 }
             }
@@ -98,8 +97,7 @@ class MainActivity : RxActivity() {
                 val adapter = this
                 val rnd = Random()
                 data = Array(5000, { Data(it, null) })
-                Observable.fromArray(data)
-                        .flatMapIterable { it.toList() }
+                Observable.fromIterable(data.toList())
                         .map {
                             Thread.sleep(500L + rnd.nextInt(1000))
                             return@map it

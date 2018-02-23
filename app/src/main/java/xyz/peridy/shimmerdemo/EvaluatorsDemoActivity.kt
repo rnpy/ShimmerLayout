@@ -15,14 +15,14 @@ import com.trello.rxlifecycle2.components.RxActivity
 
 import xyz.peridy.shimmerlayout.ShimmerLayout
 
-class InterpolatorDemoActivity : RxActivity() {
+class EvaluatorsDemoActivity : RxActivity() {
 
     private var currentTextIndex = 0
-    private val textView: TextView by lazy { findViewById<TextView>(R.id.text_view) }
+    private val textView by lazy { findViewById<TextView>(R.id.text_view) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_interpolators)
+        setContentView(R.layout.activity_evaluators)
     }
 
     override fun onStart() {
@@ -32,7 +32,7 @@ class InterpolatorDemoActivity : RxActivity() {
     }
 
     /**
-     * Customize shimmer effect using interpolators, change colour and default translation behaviour
+     * Customize shimmer effect using evaluators, change colour and default translation behaviour
      */
     private fun customizeShimmer() = with(findViewById<ShimmerLayout>(R.id.shimmer_layout)) {
         val point = Point()
@@ -42,24 +42,25 @@ class InterpolatorDemoActivity : RxActivity() {
         shimmerWidth = point.x
         shimmerAngle = 90
 
-        // interpolator can be declared using a custom class
-        colorInterpolator = object : ShimmerLayout.Interpolator<Int> {
+        // evaluator can be declared using a custom class
+        colorEvaluator = object : ShimmerLayout.Evaluator<Int> {
             // Get current colour, rotate between 3 values using ArgbEvaluator
             val evaluator = ArgbEvaluator()
             val colours = arrayOf("#800000", "#008000", "#000080").map { Color.parseColor(it) }
             val count = colours.size
 
-            override fun getInterpolation(input: Float): Int {
-                val arrayPosition = (input * count).toInt() % count
-                val offset = input * count % 1.0f
+            override fun evaluate(fraction: Float): Int {
+                val arrayPosition = (fraction * count).toInt() % count
+                val offset = fraction * count % 1.0f
                 return evaluator.evaluate(offset, colours[arrayPosition], colours[(arrayPosition + 1) % count]) as Int
             }
         }
 
-        // or using kotlin convenience method
-        setMatrixInterpolator { input ->
-            Matrix().apply {
-                setRotate(input * 360)
+        // or using kotlin convenience method, replace the default translation with a rotation.
+        val matrix = Matrix()
+        setMatrixEvaluator { fraction ->
+            matrix.apply {
+                setRotate(fraction * 360)
             }
         }
     }
@@ -108,7 +109,7 @@ class InterpolatorDemoActivity : RxActivity() {
 
     companion object {
         fun start(activity: Activity) {
-            val intent = Intent(activity, InterpolatorDemoActivity::class.java)
+            val intent = Intent(activity, EvaluatorsDemoActivity::class.java)
             activity.startActivity(intent)
         }
     }

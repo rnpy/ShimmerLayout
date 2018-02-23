@@ -1,10 +1,11 @@
 package xyz.peridy.shimmerlayout
 
+import android.animation.TimeInterpolator
 import android.content.Context
 import android.graphics.*
 import android.os.Build
 import android.util.AttributeSet
-import android.view.View
+import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 
 class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0)
@@ -16,15 +17,15 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
     var shimmerGroup: ShimmerGroup? = null
 
     /**
-     * Default shader angle, only used if [shaderInterpolator] is null
+     * Default shader angle, only used if [shaderEvaluator] is null
      */
     var shimmerAngle: Int
     /**
-     * Default shader width, only used if [shaderInterpolator] is null
+     * Default shader width, only used if [shaderEvaluator] is null
      */
     var shimmerWidth: Int
     /**
-     * Default shader center width, only used if [shaderInterpolator] is null
+     * Default shader center width, only used if [shaderEvaluator] is null
      */
     var shimmerCenterWidth: Int
 
@@ -42,22 +43,43 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
         }
 
     /**
-     * Gets the [Shader] to use for current animation value. Default uses a [LinearGradient]
+     * [TimeInterpolator] to use for animation.
+     *
+     * Defaults to [LinearInterpolator].
      */
-    var shaderInterpolator: Interpolator<Shader>? = null
+    var timeInterpolator: TimeInterpolator = LinearInterpolator()
+
     /**
-     * Gets the color to use for current animation value. Default is null, color remains the same.
+     * Optional [Evaluator] providing the [Shader] to use for each animation value.
+     *
+     * Defaults to a [LinearGradient] defined by [shimmerAngle], [shimmerWidth] and
+     * [shimmerCenterWidth] parameters.
+     *
+     * If a custom shader evaluator is provided, those parameters are ignored.
      */
-    var colorInterpolator: Interpolator<Int>? = null
+    var shaderEvaluator: Evaluator<Shader>? = null
+
     /**
-     * [Interpolator] used to get the [Matrix] to use for each animation value. This matrix will
-     * be used to transform the shader on each [dispatchDraw] operation.
+     * Optional [Evaluator] providing the Color to use for current animation value.
+     *
+     * Default is null, in that case the color remains the same ([shimmerColor]) for the entire
+     * animation duration.
+     *
+     * If an evaluator is set, [shimmerColor] is ignored.
      */
-    var matrixInterpolator: Interpolator<Matrix>? = object : Interpolator<Matrix> {
+    var colorEvaluator: Evaluator<Int>? = null
+
+    /**
+     * Optional [Evaluator] used to get the [Matrix] to use for each animation value. This matrix
+     * will be used to transform the shader on each [dispatchDraw] operation.
+     *
+     * Defaults to a [Evaluator] providing a translation from left to right.
+     */
+    var matrixEvaluator: Evaluator<Matrix>? = object : Evaluator<Matrix> {
         // Default translation from left to right
-        override fun getInterpolation(input: Float) = Matrix().apply {
+        override fun evaluate(fraction: Float) = Matrix().apply {
             // animate from -1 to +1, max dimension will define the shimmer Paint size.
-            val translateX = (input * 2 - 1) * translateRange
+            val translateX = (fraction * 2 - 1) * translateRange
             setTranslate(translateX, 0f)
         }
     }
@@ -74,9 +96,9 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
         setWillNotDraw(false)
         val attributes = context.theme.obtainStyledAttributes(attrs, R.styleable.ShimmerLayout, 0, 0)
         try {
-            shimmerAngle = attributes.getInteger(R.styleable.ShimmerLayout_angle, DEFAULT_ANGLE)
-            shimmerDuration = attributes.getInteger(R.styleable.ShimmerLayout_animation_duration, DEFAULT_DURATION).toLong()
-            shimmerColor = attributes.getColor(R.styleable.ShimmerLayout_foreground_color, ShimmerUtil.getColor(getContext(), DEFAULT_COLOR))
+            shimmerAngle = attributes.getInteger(R.styleable.ShimmerLayout_shimmer_angle, DEFAULT_ANGLE)
+            shimmerDuration = attributes.getInteger(R.styleable.ShimmerLayout_shimmer_duration, DEFAULT_DURATION).toLong()
+            shimmerColor = attributes.getColor(R.styleable.ShimmerLayout_shimmer_color, ShimmerUtil.getColor(getContext(), DEFAULT_COLOR))
             shimmerWidth = attributes.getDimensionPixelSize(R.styleable.ShimmerLayout_shimmer_width, resources.getDimensionPixelSize(DEFAULT_SHADOW_WIDTH))
             shimmerCenterWidth = attributes.getDimensionPixelSize(R.styleable.ShimmerLayout_shimmer_width, resources.getDimensionPixelSize(DEFAULT_CENTER_WIDTH))
         } finally {
@@ -100,9 +122,7 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
 
     override fun setVisibility(visibility: Int) {
         super.setVisibility(visibility)
-        if (visibility == View.VISIBLE) {
-            ensureAnimationStarted()
-        } else {
+        if (!isShown) {
             stopShimmerAnimation()
         }
     }
@@ -113,15 +133,15 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
     }
 
     private fun ensureAnimationStarted() {
-        if (!animating && width > 0 && visibility == View.VISIBLE) {
+        if (!animating && width > 0 && isShown) {
             if (shimmerGroup == null) {
                 shimmerGroup = ShimmerGroup()
             }
-            if (shaderInterpolator == null) {
+            if (shaderEvaluator == null) {
                 maskPaint.shader = ShimmerUtil.getShimmerShader(width, shimmerAngle.toDouble(), shimmerWidth, shimmerCenterWidth)
             }
             translateRange = Math.max(width, height)
-            shimmerGroup?.addView(this, shimmerDuration)
+            shimmerGroup?.addView(this, shimmerDuration, timeInterpolator)
             animating = true
         }
     }
@@ -142,38 +162,38 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
     }
 
     private fun customizePaint(animatedValue: Float) {
-        shaderInterpolator?.let { maskPaint.shader = it.getInterpolation(animatedValue) }
-        colorInterpolator?.let { shimmerColor = it.getInterpolation(animatedValue) }
-        matrixInterpolator?.let { maskPaint.shader.setLocalMatrix(it.getInterpolation(animatedValue)) }
+        shaderEvaluator?.let { maskPaint.shader = it.evaluate(animatedValue) }
+        colorEvaluator?.let { shimmerColor = it.evaluate(animatedValue) }
+        matrixEvaluator?.let { maskPaint.shader.setLocalMatrix(it.evaluate(animatedValue)) }
     }
 
-    interface Interpolator<out T> {
+    interface Evaluator<out T> {
         /**
          * Maps a value representing the elapsed fraction of an animation to a value that represents
          * the interpolated [T].
          *
-         * @param input value between 0 and 1 indicating animation progress
-         * @return [T] value for [input]
+         * @param fraction value between 0 and 1 indicating animation progress
+         * @return [T] value for [fraction]
          */
-        fun getInterpolation(input: Float): T
+        fun evaluate(fraction: Float): T
     }
 
-    // convenience methods to simplify interpolator declaration from kotlin
-    inline fun setMatrixInterpolator(crossinline value: (Float) -> Matrix) {
-        matrixInterpolator = object : Interpolator<Matrix> {
-            override fun getInterpolation(input: Float) = value.invoke(input)
+    // convenience methods to simplify evaluators declaration from kotlin
+    inline fun setMatrixEvaluator(crossinline value: (Float) -> Matrix) {
+        matrixEvaluator = object : Evaluator<Matrix> {
+            override fun evaluate(fraction: Float) = value.invoke(fraction)
         }
     }
 
-    inline fun setShaderInterpolator(crossinline value: (Float) -> Shader) {
-        shaderInterpolator = object : Interpolator<Shader> {
-            override fun getInterpolation(input: Float) = value.invoke(input)
+    inline fun setShaderEvaluator(crossinline value: (Float) -> Shader) {
+        shaderEvaluator = object : Evaluator<Shader> {
+            override fun evaluate(fraction: Float) = value.invoke(fraction)
         }
     }
 
-    inline fun setColorInterpolator(crossinline value: (Float) -> Int) {
-        colorInterpolator = object : Interpolator<Int> {
-            override fun getInterpolation(input: Float) = value.invoke(input)
+    inline fun setColorEvaluator(crossinline value: (Float) -> Int) {
+        colorEvaluator = object : Evaluator<Int> {
+            override fun evaluate(fraction: Float) = value.invoke(fraction)
         }
     }
 

@@ -27,7 +27,6 @@
                 android:orientation="vertical">
 
                 <View
-                    android:id="@+id/text_view"
                     android:layout_width="152dp"
                     android:layout_height="14dp"
                     android:layout_marginLeft="8dp"

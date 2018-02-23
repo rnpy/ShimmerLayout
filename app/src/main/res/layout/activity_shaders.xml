@@ -6,8 +6,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_gravity="center"
-    app:animation_duration="2500"
-    app:foreground_color="@color/colorPrimary">
+    app:shimmer_color="@color/colorPrimary"
+    app:shimmer_duration="2500">
 
     <LinearLayout
         android:layout_width="match_parent"

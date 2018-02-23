@@ -79,6 +79,8 @@ By default, `ShimmerLayout` will create an effect based those parameters
 - shimmerAngle: shadow angle
 - shimmerWidth: total width of shadow
 - shimmerCenterWidth: width of solid color in the center of shadow
+- shimmerDuration: duration in ms
+- shimmerColor: color
 
 All these can be set directly in xml layout:
 
@@ -89,7 +91,9 @@ All these can be set directly in xml layout:
     android:layout_height="wrap_content"
     app:shimmer_center_width="10dp"
     app:shimmer_width="20dp"
-    app:angle="30">
+    app:shimmer_angle="30"
+    app:shimmer_duration="250"
+    app:shimmer_color="#FF0000">
 ```
 
 ### Groups

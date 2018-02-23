@@ -96,9 +96,9 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
         setWillNotDraw(false)
         val attributes = context.theme.obtainStyledAttributes(attrs, R.styleable.ShimmerLayout, 0, 0)
         try {
-            shimmerAngle = attributes.getInteger(R.styleable.ShimmerLayout_angle, DEFAULT_ANGLE)
-            shimmerDuration = attributes.getInteger(R.styleable.ShimmerLayout_animation_duration, DEFAULT_DURATION).toLong()
-            shimmerColor = attributes.getColor(R.styleable.ShimmerLayout_foreground_color, ShimmerUtil.getColor(getContext(), DEFAULT_COLOR))
+            shimmerAngle = attributes.getInteger(R.styleable.ShimmerLayout_shimmer_angle, DEFAULT_ANGLE)
+            shimmerDuration = attributes.getInteger(R.styleable.ShimmerLayout_shimmer_duration, DEFAULT_DURATION).toLong()
+            shimmerColor = attributes.getColor(R.styleable.ShimmerLayout_shimmer_color, ShimmerUtil.getColor(getContext(), DEFAULT_COLOR))
             shimmerWidth = attributes.getDimensionPixelSize(R.styleable.ShimmerLayout_shimmer_width, resources.getDimensionPixelSize(DEFAULT_SHADOW_WIDTH))
             shimmerCenterWidth = attributes.getDimensionPixelSize(R.styleable.ShimmerLayout_shimmer_width, resources.getDimensionPixelSize(DEFAULT_CENTER_WIDTH))
         } finally {

@@ -19,6 +19,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 apply plugin: 'com.getkeepsafe.dexcount'
+apply from: '../publishing.gradle'
 
 android {
     compileSdkVersion compileSdk

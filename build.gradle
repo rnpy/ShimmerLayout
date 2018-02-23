@@ -4,6 +4,7 @@ buildscript {
 
     repositories {
         jcenter()
+        google() // needed for command line gradle wrapper
     }
     dependencies {
         classpath "com.android.tools.build:gradle:$gradle_version"

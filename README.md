@@ -122,7 +122,7 @@ With a group, newly added views are synchronized with any existing one, making d
 
 ![With group](images/group.gif)
 
-To set a group, simply create a `ShimmerGroup` object in code, and pass it to all `ShimmerLayout` you want to synchronise:
+To set a group, simply create a `ShimmerGroup` object in code, and pass it to all `ShimmerLayout` you want synchronised:
 ```kotlin
 val myShimmerGroup = ShimmerGroup()
 
@@ -131,8 +131,6 @@ findViewById<ShimmerLayout>(R.id.shimmer_layout_2).shimmerGroup = myShimmerGroup
 ```
 
 For the most common use (in `RecyclerView`), it is recommended to define the group in the adapter, and pass it to all ViewHolders (see demo app).
-
-Multiple layouts using the same `ShimmerGroup` must use the same animation duration and `TimeInterpolator`.
 
 ### TimeInterpolator
 
@@ -169,8 +167,6 @@ colorEvaluator = object : ShimmerLayout.Evaluator<Int> {
 And now your designers can cry again with this result:
 
 ![Radial](images/radial.gif)
-
-The fraction passed to `evaluate` method ranges from 0 to 1 by default, but this can change depending on the `TimeInterpolator` used. In this example, range is -1 to 1 because of the [CycleInterpolator](https://developer.android.com/reference/android/view/animation/CycleInterpolator.html))
 
 #### Shader Evaluator
 

@@ -1,18 +1,27 @@
 # ShimmerLayout
 
-Memory efficient, simple yet highly customizable Shimmer Layout.
+Simple, memory efficient and high performance Shimmer Layout for Android.
 
 ## About
 
 `ShimmerLayout` can be used to create a shimmer effect to your Android apps loading states (similar to Facebook).
 
-To allow better rendering on complex layouts (especially in `RecyclerView`), multiple `ShimmerLayout` can easily be synced together to use the exact same animation.
+As loading states should be as fast and seamless as possible, this library leaves as much resources as possible for you to do the real work behind, by focusing on:
 
-This implementation is very memory efficient, contrary to the most common implementations, it works without creating any Bitmaps or large objects. Rendering of the shimmer effect is also done in a single native operation, making its impact CPU and GPU usage very low.
+- memory efficiency: contrary to other similar libraries that usually work using multiple large bitmaps, this library **does not use a single bitmap** or large object, making its memory footprint negligible.
+- performance: on top of avoiding large bitmap manipulation, rendering of each shimmer effect frame is done using **one single native operation**, making its impact on CPU and GPU usage as low as possible.
+- simplicity: `View.setVisibility()` is all you need to control this layout.
+- lightweight: just over 150 methods and around 20Kb, *before* proguard does its magic.
+
+`ShimmerLayout` also offers a unique feature allowing better rendering on complex layouts (especially when used in `RecyclerView` as a placeholder for each `ViewHolder`): multiple `ShimmerLayout` can easily be synchronized together to use the exact same animation.
+
+Despite its simplicity and small size, `ShimmerLayout` can still be configured for much more complex use cases thanks to a few optional parameters.
+
+Simple use case with default animation, in a `RecyclerView` allowing scrolling while elements are still loading:
 
 ![ShimmerLayout](images/shimmer.gif)
 
-While it was originally made for placeholders, it can also be used to animate anything, a loading screen for example:
+And a more complex loading screen using `ShimmerLayout` to create a color-changing, rotating shimmer effect on some animated views (in less than 20 lines!):
 
 ![ShimmerLayout](images/loading.gif)
 
@@ -20,9 +29,14 @@ Originally inspired by [Facebook Shimmer for Android](https://github.com/faceboo
 
 ## Usage
 
-// TODO gradle
+Use gradle to get latest version:
+
+```groovy
+implementation 'xyz.peridy.shimmer:shimmerlayout:1.0'
+```
 
 Wrap the layout you want to animate inside a `ShimmerLayout`. It is recommended to define a layout that looks like the content you're going to display:
+
 ```xml
 <xyz.peridy.shimmerlayout.ShimmerLayout
     android:id="@+id/shimmer_layout"
@@ -67,13 +81,13 @@ Wrap the layout you want to animate inside a `ShimmerLayout`. It is recommended 
 </xyz.peridy.shimmerlayout.ShimmerLayout>
 ```
 
-For the most basic usage, that's all you have to do. When this layout is visible, it will start animating. It will automatically stop or start again when its visibility change.
+For the most basic usage, that's all you need. When this layout is visible, it will start animating. It will automatically stop or start again when its visibility change, since it's intended to be a loading placeholder, you're probably already doing this anyway.
 
-`ShimmerLayout` should work on any view, but since it's intended to be used as a loading indicator, you should keep them simple. Animated content can also be used in some cases (see `EvaluatorsDemoActivity`):
+`ShimmerLayout` should work on any view, but remember this is only a loading indicator, and keep things simple. Animated content can also be used in some cases, just make sure to make it as lightweight as possible and use native Android animations (see `EvaluatorsDemoActivity`):
 
 ## Customization
 
-### Default shimmer effect
+### Basic configuration
 
 By default, `ShimmerLayout` will create an effect based those parameters
 - shimmerAngle: shadow angle
@@ -82,7 +96,7 @@ By default, `ShimmerLayout` will create an effect based those parameters
 - shimmerDuration: duration in ms
 - shimmerColor: color
 
-All these can be set directly in xml layout:
+All these can also be set directly in xml layout:
 
 ```xml
 <xyz.peridy.shimmerlayout.ShimmerLayout
@@ -98,17 +112,17 @@ All these can be set directly in xml layout:
 
 ### Groups
 
-Groups allow multiple `ShimmerLayout` to be synchronized with each other. It is highly recommended to use a group if using ShimmerLayout on multiple elements on the screen (in a RecyclerView for example), as if new elements are added, their animation would not be synced with existing ones:
+Groups allow multiple `ShimmerLayout` to be synchronized with each other. It is highly recommended to use a group when using multiple `ShimmerLayout` on the same screen.
 
-Without Group, if some views are added after animation is started (scrolling in a `RecyclerView` for example), you can end up in cases like this:
+Without Group, if new `ShimmerLayout` are added after animation is started (scrolling down a `RecyclerView` for example), you can end up in cases like this, which would make your designers cry:
 
 ![Without group](images/nogroup.gif)
 
-With a group, all views can be synchronizes together, no matter when they're added:
+With a group, newly added views are synchronized with any existing one, making designers much happier:
 
 ![With group](images/group.gif)
 
-To set a group, simply define a `ShimmerGroup` object in code, and pass it to all `ShimmerLayout` you want to synchronise:
+To set a group, simply create a `ShimmerGroup` object in code, and pass it to all `ShimmerLayout` you want to synchronise:
 ```kotlin
 val myShimmerGroup = ShimmerGroup()
 
@@ -116,15 +130,22 @@ findViewById<ShimmerLayout>(R.id.shimmer_layout_1).shimmerGroup = myShimmerGroup
 findViewById<ShimmerLayout>(R.id.shimmer_layout_2).shimmerGroup = myShimmerGroup
 ```
 
-For the most common use (in RecyclerView), it is recommended to define the group in the adapter, and pass it to all ViewHolders (see demo app).
+For the most common use (in `RecyclerView`), it is recommended to define the group in the adapter, and pass it to all ViewHolders (see demo app).
 
 Multiple layouts using the same `ShimmerGroup` must use the same animation duration and `TimeInterpolator`.
 
+### TimeInterpolator
+
+A [TimeInterpolator](https://developer.android.com/reference/android/animation/TimeInterpolator.html) can be provided to modify the rate of change of the animation. For example, to have the shimmer accelerate then decelerate, simply use:
+```kotlin
+shimmerLayout.timeInterpolator = AccelerateDecelerateInterpolator()
+```
+
 ### Evaluators
 
-`ShimmerLayout` draws the effect on every frame using a single [drawPaint](https://developer.android.com/reference/android/graphics/Canvas.html#drawPaint\(android.graphics.Paint\)) operation. `ShimmerLayout` provides 3 ways to customize animation though `Evaluator` classes. Each of these expose a method that is called on each frame to customize the effect, so be mindful of performance when implementing them.
+`ShimmerLayout` draws the effect on every frame using one single [drawPaint](https://developer.android.com/reference/android/graphics/Canvas.html#drawPaint\(android.graphics.Paint\)) operation. `ShimmerLayout` provides 3 ways to customize animation though `Evaluator` classes. Each of these expose a method that is called on each frame to customize the effect, so be mindful of performance when implementing them.
 
-For example, this customizes the effect to use a radial gradient, growing and shrinking form the center of the view:
+For example, this customizes the effect to use a color-changing radial gradient instead of the default linear gradient, growing and shrinking from the center of the view instead of using a translation from left to right:
 ```kotlin
 matrixEvaluator = null
 timeInterpolator = CycleInterpolator(1f)
@@ -145,23 +166,27 @@ colorEvaluator = object : ShimmerLayout.Evaluator<Int> {
     }
 }
 ```
+And now your designers can cry again with this result:
 
 ![Radial](images/radial.gif)
 
+The fraction passed to `evaluate` method ranges from 0 to 1 by default, but this can change depending on the `TimeInterpolator` used. In this example, range is -1 to 1 because of the [CycleInterpolator](https://developer.android.com/reference/android/view/animation/CycleInterpolator.html))
+
 #### Shader Evaluator
 
-The shader is used to create the shadow effect on `ShimmerLayout`. Using a custom `Evaluator<Shader>` allows you to customize the shader to use for each animation frame.
+The shader is used to create the shadow effect. Providing one allows you to customize the shader to use for each animation frame.
 
-See example above for `RadialGradient`
+See example above for use of a `RadialGradient`
 
 #### Color Evaluator
-By default, `ShimmerLayout` will use the `shimmerColor` attribute to tint the effect. Providing a custom `Evaluator` allows to define the color to use for each animation offset. For example, the following code rotates between 3 colors, using an `ArgbEvaluator` to smoothly transition from one to another:
+
+The color used to tint the shadow effect. By default, `ShimmerLayout` will use the `shimmerColor` attribute to tint the effect. Providing an `Evaluator` allows you to define the color to use for each animation frame.
 
 See example above for use of `ArgbEvaluator` to alternate between multiple colours.
 
 #### Matrix Evaluator
 
-Default Matrix uses a translation from left to right, this can be modified by providing a custom `Evaluator<Matrix>`. For example, this replaces the translation with a rotation:
+Default Matrix uses a translation from left to right, this can be modified by providing a custom `Evaluator<Matrix>`. For example, this replaces the translation with a rotation (see `EvaluatorsDemoActivity` for an example using this):
 ```kotlin
 val matrix = Matrix()
 setMatrixEvaluator { fraction ->

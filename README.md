@@ -12,6 +12,10 @@ This implementation is very memory efficient, contrary to the most common implem
 
 ![ShimmerLayout](images/shimmer.gif)
 
+While it was originally made for placeholders, it can also be used to animate anything, a loading screen for example:
+
+![ShimmerLayout](images/loading.gif)
+
 Originally inspired by [Facebook Shimmer for Android](https://github.com/facebook/shimmer-android) and [Supercharge ShimmerLayout](https://github.com/team-supercharge/ShimmerLayout).
 
 ## Usage

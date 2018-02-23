@@ -5,7 +5,6 @@ import android.content.Context
 import android.graphics.*
 import android.os.Build
 import android.util.AttributeSet
-import android.view.View
 import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 
@@ -123,9 +122,7 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
 
     override fun setVisibility(visibility: Int) {
         super.setVisibility(visibility)
-        if (visibility == View.VISIBLE) {
-            ensureAnimationStarted()
-        } else {
+        if (!isShown) {
             stopShimmerAnimation()
         }
     }
@@ -136,7 +133,7 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
     }
 
     private fun ensureAnimationStarted() {
-        if (!animating && width > 0 && visibility == View.VISIBLE) {
+        if (!animating && width > 0 && isShown) {
             if (shimmerGroup == null) {
                 shimmerGroup = ShimmerGroup()
             }

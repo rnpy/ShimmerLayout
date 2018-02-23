@@ -3,9 +3,8 @@ package xyz.peridy.shimmerlayout
 import android.animation.TimeInterpolator
 import android.animation.ValueAnimator
 import android.os.Handler
-import android.view.View
 import java.lang.ref.WeakReference
-import java.util.*
+import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * A group of [ShimmerLayout] to synchronize. All layouts using the same group will share the same
@@ -13,8 +12,12 @@ import java.util.*
  * interpolation, these will be set by the first view to animate (don't do that).
  */
 class ShimmerGroup {
+    // CopyOnWriteArrayList is slower than ArrayList, but allows concurrent access. We're mostly
+    // iterating and doing very few add/remove operations, so performance impact is negligible.
+    // This mostly prevent concurrent access issues when multiple ShimmerLayout are removed at the
+    // same time (removeView being called multiple times, possibly concurrently)
+    private val animatedViews = CopyOnWriteArrayList<WeakReference<ShimmerLayout>>()
     private var valueAnimator: ValueAnimator? = null
-    private val animatedViews = ArrayList<WeakReference<ShimmerLayout>>()
     internal var animatedValue = 0f
 
     internal fun addView(shimmerLayout: ShimmerLayout, animationDuration: Long, timeInterpolator: TimeInterpolator) {
@@ -57,7 +60,7 @@ class ShimmerGroup {
         with(animatedViews.iterator()) {
             forEach {
                 it.get()?.let { view ->
-                    if (view.visibility == View.VISIBLE) {
+                    if (view.isShown) {
                         view.invalidate()
                     } else {
                         view.stopShimmerAnimation()

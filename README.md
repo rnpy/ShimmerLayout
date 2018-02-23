@@ -8,13 +8,15 @@ Memory efficient, simple yet highly customizable Shimmer Layout.
 
 To allow better rendering on complex layouts (especially in `RecyclerView`), multiple `ShimmerLayout` can easily be synced together to use the exact same animation.
 
-This implementation is very memory efficient, as it works without creating any Bitmaps or large objects. Rendering of the shimmer effect is also done in a single native operation, making its impact CPU/GPU usage very low.
+This implementation is very memory efficient, contrary to the most common implementations, it works without creating any Bitmaps or large objects. Rendering of the shimmer effect is also done in a single native operation, making its impact CPU and GPU usage very low.
 
-// TODO add some shiny gifs
+![ShimmerLayout](images/shimmer.gif)
 
 Originally inspired by [Facebook Shimmer for Android](https://github.com/facebook/shimmer-android) and [Supercharge ShimmerLayout](https://github.com/team-supercharge/ShimmerLayout).
 
 ## Usage
+
+// TODO gradle
 
 Wrap the layout you want to animate inside a `ShimmerLayout`. It is recommended to define a layout that looks like the content you're going to display:
 ```xml
@@ -65,8 +67,6 @@ For the most basic usage, that's all you have to do. When this layout is visible
 
 `ShimmerLayout` should work on any view, but since it's intended to be used as a loading indicator, you should keep them simple. Animated content can also be used in some cases (see `EvaluatorsDemoActivity`):
 
-// TODO shiny gif again
-
 ## Customization
 
 ### Default shimmer effect
@@ -88,15 +88,17 @@ All these can be set directly in xml layout:
     app:angle="30">
 ```
 
-// TODO image showing these ^
-
 ### Groups
 
-Groups allow multiple `ShimmerLayout` to be synchronized with each other. It is highly recommended to use a group if using ShimmerLayout on multiple elements on the screen (in a RecyclerView for example):
+Groups allow multiple `ShimmerLayout` to be synchronized with each other. It is highly recommended to use a group if using ShimmerLayout on multiple elements on the screen (in a RecyclerView for example), as if new elements are added, their animation would not be synced with existing ones:
 
-Without group: // TODO insert gif
+Without Group, if some views are added after animation is started (scrolling in a `RecyclerView` for example), you can end up in cases like this:
 
-With group: // TODO insert gif
+![Without group](images/nogroup.gif)
+
+With a group, all views can be synchronizes together, no matter when they're added:
+
+![With group](images/group.gif)
 
 To set a group, simply define a `ShimmerGroup` object in code, and pass it to all `ShimmerLayout` you want to synchronise:
 ```kotlin
@@ -112,48 +114,54 @@ Multiple layouts using the same `ShimmerGroup` must use the same animation durat
 
 ### Evaluators
 
-ShimmerLayout provides 3 ways to customize animation :
+`ShimmerLayout` draws the effect on every frame using a single [drawPaint](https://developer.android.com/reference/android/graphics/Canvas.html#drawPaint\(android.graphics.Paint\)) operation. `ShimmerLayout` provides 3 ways to customize animation though `Evaluator` classes. Each of these expose a method that is called on each frame to customize the effect, so be mindful of performance when implementing them.
 
-#### Matrix Evaluator
-Default animation uses a translation from left to right, this can be modified by providing a custom `Evaluator<Matrix>`. For example, this replaces the translation with a rotation:
+For example, this customizes the effect to use a radial gradient, growing and shrinking form the center of the view:
 ```kotlin
-setMatrixEvaluator { fraction ->
-    Matrix().apply {
-        setRotate(fraction * 360)
-    }
+matrixEvaluator = null
+timeInterpolator = CycleInterpolator(1f)
+setShaderEvaluator { fraction ->
+    val radius = Math.abs(fraction) * width + 1
+    RadialGradient(width / 2f, height / 2f, radius, intArrayOf(Color.BLACK, Color.TRANSPARENT), null, Shader.TileMode.CLAMP)
 }
-```
-#### Shader Evaluator
-
-The shader is used to create the shadow effect on `ShimmerLayout`. Using a custom `Evaluator<Shader>` allows you to customize the shader to use for each animation frame.
-
-For example, you can replace the default shader with a `RadialGradient` changing radius:
-
-```kotlin
-TODO
-```
-
-// TODO more shiny gifs
-
-#### Color Evaluator
-By default, `ShimmerLayout` will use the `shimmerColor` attribute to tint the effect. Providing a custom `Evaluator` allows to define the color to use for each animation offset. For example, the following code rotates between 3 colors, using an `ArgbEvaluator` to smoothly transition from one to another:
-```kotlin
 colorEvaluator = object : ShimmerLayout.Evaluator<Int> {
     val evaluator = ArgbEvaluator()
-    val colours = arrayOf("#800000", "#008000", "#000080").map { Color.parseColor(it) }
+    val colours = arrayOf("#B00000", "#00B000", "#0000B0").map { Color.parseColor(it) }
     val count = colours.size
 
     override fun evaluate(fraction: Float): Int {
-        val arrayPosition = (fraction * count).toInt() % count
-        val offset = fraction * count % 1.0f
+        val localFraction = (1 + fraction) / 2 // CycleInterpolator means fraction ranges from -1 to 1
+        val arrayPosition = (localFraction * count).toInt() % count
+        val offset = localFraction * count % 1.0f
         return evaluator.evaluate(offset, colours[arrayPosition], colours[(arrayPosition + 1) % count]) as Int
     }
 }
 ```
-## TODO
-- write more stuff in here, add images
-- release
 
+![Radial](images/radial.gif)
+
+#### Shader Evaluator
+
+The shader is used to create the shadow effect on `ShimmerLayout`. Using a custom `Evaluator<Shader>` allows you to customize the shader to use for each animation frame.
+
+See example above for `RadialGradient`
+
+#### Color Evaluator
+By default, `ShimmerLayout` will use the `shimmerColor` attribute to tint the effect. Providing a custom `Evaluator` allows to define the color to use for each animation offset. For example, the following code rotates between 3 colors, using an `ArgbEvaluator` to smoothly transition from one to another:
+
+See example above for use of `ArgbEvaluator` to alternate between multiple colours.
+
+#### Matrix Evaluator
+
+Default Matrix uses a translation from left to right, this can be modified by providing a custom `Evaluator<Matrix>`. For example, this replaces the translation with a rotation:
+```kotlin
+val matrix = Matrix()
+setMatrixEvaluator { fraction ->
+    matrix.apply {
+        setRotate(fraction * 360)
+    }
+}
+```
 
 ## License
 

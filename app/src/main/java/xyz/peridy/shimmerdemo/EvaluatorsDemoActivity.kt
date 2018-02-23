@@ -57,8 +57,9 @@ class EvaluatorsDemoActivity : RxActivity() {
         }
 
         // or using kotlin convenience method, replace the default translation with a rotation.
+        val matrix = Matrix()
         setMatrixEvaluator { fraction ->
-            Matrix().apply {
+            matrix.apply {
                 setRotate(fraction * 360)
             }
         }

@@ -29,9 +29,11 @@ Originally inspired by [Facebook Shimmer for Android](https://github.com/faceboo
 
 ## Usage
 
-Use gradle to get latest version:
+Use gradle to get latest version, custom maven URL is needed for now pending inclusion in bintray jCenter:
 
 ```groovy
+repositories { maven { url "https://dl.bintray.com/rnpy/shimmer" } }
+
 implementation 'xyz.peridy.shimmer:shimmerlayout:1.0'
 ```
 

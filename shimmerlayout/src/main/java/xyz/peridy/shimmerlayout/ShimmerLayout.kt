@@ -100,7 +100,7 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
             shimmerDuration = attributes.getInteger(R.styleable.ShimmerLayout_shimmer_duration, DEFAULT_DURATION).toLong()
             shimmerColor = attributes.getColor(R.styleable.ShimmerLayout_shimmer_color, ShimmerUtil.getColor(getContext(), DEFAULT_COLOR))
             shimmerWidth = attributes.getDimensionPixelSize(R.styleable.ShimmerLayout_shimmer_width, resources.getDimensionPixelSize(DEFAULT_SHADOW_WIDTH))
-            shimmerCenterWidth = attributes.getDimensionPixelSize(R.styleable.ShimmerLayout_shimmer_width, resources.getDimensionPixelSize(DEFAULT_CENTER_WIDTH))
+            shimmerCenterWidth = attributes.getDimensionPixelSize(R.styleable.ShimmerLayout_shimmer_center_width, resources.getDimensionPixelSize(DEFAULT_CENTER_WIDTH))
         } finally {
             attributes.recycle()
         }

@@ -8,8 +8,11 @@ import android.util.AttributeSet
 import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 
-class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0)
-    : FrameLayout(context, attrs, defStyle) {
+class ShimmerLayout @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = R.attr.shimmerLayoutStyle
+) : FrameLayout(context, attrs, defStyleAttr) {
 
     /**
      * Optional group to synchronize multiple [ShimmerLayout] animations
@@ -94,13 +97,13 @@ class ShimmerLayout @JvmOverloads constructor(context: Context, attrs: Attribute
 
     init {
         setWillNotDraw(false)
-        val attributes = context.theme.obtainStyledAttributes(attrs, R.styleable.ShimmerLayout, 0, 0)
+        val attributes = context.theme.obtainStyledAttributes(attrs, R.styleable.ShimmerLayout, defStyleAttr, 0)
         try {
             shimmerAngle = attributes.getInteger(R.styleable.ShimmerLayout_shimmer_angle, DEFAULT_ANGLE)
             shimmerDuration = attributes.getInteger(R.styleable.ShimmerLayout_shimmer_duration, DEFAULT_DURATION).toLong()
             shimmerColor = attributes.getColor(R.styleable.ShimmerLayout_shimmer_color, ShimmerUtil.getColor(getContext(), DEFAULT_COLOR))
             shimmerWidth = attributes.getDimensionPixelSize(R.styleable.ShimmerLayout_shimmer_width, resources.getDimensionPixelSize(DEFAULT_SHADOW_WIDTH))
-            shimmerCenterWidth = attributes.getDimensionPixelSize(R.styleable.ShimmerLayout_shimmer_width, resources.getDimensionPixelSize(DEFAULT_CENTER_WIDTH))
+            shimmerCenterWidth = attributes.getDimensionPixelSize(R.styleable.ShimmerLayout_shimmer_center_width, resources.getDimensionPixelSize(DEFAULT_CENTER_WIDTH))
         } finally {
             attributes.recycle()
         }

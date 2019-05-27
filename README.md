@@ -34,7 +34,7 @@ Use gradle to get latest version, custom maven URL is needed for now pending inc
 ```groovy
 repositories { maven { url "https://dl.bintray.com/rnpy/shimmer" } }
 
-implementation 'xyz.peridy.shimmer:shimmerlayout:1.0'
+implementation 'xyz.peridy.shimmer:shimmerlayout:1.1'
 ```
 
 Wrap the layout you want to animate inside a `ShimmerLayout`. It is recommended to define a layout that looks like the content you're going to display:

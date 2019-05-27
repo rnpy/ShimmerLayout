@@ -1,4 +1,4 @@
-ext.version = "1.0"
+ext.version = "1.1"
 ext.group = "xyz.peridy.shimmer"
 ext.name = "ShimmerLayout"
 ext.scm = 'https://github.com/rnpy/ShimmerLayout.git'

@@ -1,19 +1,7 @@
 apply plugin: 'maven-publish'
 apply plugin: 'com.jfrog.bintray'
 
-project.afterEvaluate {
-    if (project.plugins.hasPlugin("com.android.library")) {
-        project.android.libraryVariants.all { variant ->
-            variant.getOutputs().all { output ->
-                outputFileName = new File("${project.name}-v${project.version}.aar")
-            }
-        }
-    }
-}
-
-project.group = project.ext.group
-project.version = project.ext.version
-
+// To publish a new version, set BINTRAY_USERNAME and BINTRAY_API_KEY, then run "clean build bintrayUpload"
 bintray {
     user = BINTRAY_USERNAME
     key = BINTRAY_API_KEY
@@ -23,10 +11,10 @@ bintray {
         licenses = ['BSD 2-Clause']
         vcsUrl = project.ext.scm
         version {
-            name = project.version
+            name = project.ext.version
             desc = project.ext.description
             released = new Date()
-            vcsTag = project.version
+            vcsTag = project.ext.version
         }
         publications = ['Bintray']
     }
@@ -61,7 +49,7 @@ publishing.publications {
         version project.ext.version
 
         artifact sourceJar
-        artifact "$buildDir/outputs/aar/${project.name}-v${project.version}.aar"
+        artifact "$buildDir/outputs/aar/${project.name}-release.aar"
 
         //generate pom nodes for dependencies
         //when a project references another project, it's artifact node is generated
@@ -91,21 +79,16 @@ publishing.publications {
 }
 
 def getArtifactId() {
-    return getArtifactId(project)
-
-}
-
-def getArtifactId(someProject) {
-    if (!someProject.ext.has('artifactId')) {
+    if (!project.ext.has('artifactId')) {
         //default artifactId is the project/module name
-        return someProject.getName()
+        return project.getName()
 
     }
-    return someProject.ext.artifactId
+    return project.ext.artifactId
 }
 
 
-def addDependencyNodeToPom(dependenciesNode, group, artifact, version) {
+static def addDependencyNodeToPom(dependenciesNode, group, artifact, version) {
     def dependencyNode = dependenciesNode.appendNode('dependency')
     dependencyNode.appendNode("groupId", group)
     dependencyNode.appendNode("artifactId", artifact)

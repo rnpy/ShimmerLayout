@@ -1,21 +1,21 @@
-ext.version = "1.1"
+ext.version = "1.2"
 ext.group = "xyz.peridy.shimmer"
 ext.name = "ShimmerLayout"
 ext.scm = 'https://github.com/rnpy/ShimmerLayout.git'
 ext.description = 'Simple, memory efficient and high performance Shimmer Layout for Android.'
 
 ext.minSdk = 15
-ext.compileSdk = 26
-ext.buildTools = "26.0.2"
-ext.kotlin_version = '1.2.21'
-ext.bintray_version = '1.7.3'
-ext.gradle_version = '3.0.1'
-ext.android_support_version = '27.0.2'
+ext.compileSdk = 28
+ext.buildTools = "28.0.3"
+ext.kotlin_version = '1.3.31'
+ext.bintray_version = '1.8.4'
+ext.gradle_version = '3.4.1'
+ext.android_support_version = '28.0.0'
 ext.maven_gradle_plugin_version = '2.0'
 ext.dexcount_version = '0.8.2'
 
 // Demo app
 ext.rxlifecycle2_version = '2.2.0'
 ext.google_play_services_version = '11.4.0'
-ext.rxandroid_version = '2.0.1'
+ext.rxandroid_version = '2.1.1'
 ext.rxjava_version = '2.1.5'

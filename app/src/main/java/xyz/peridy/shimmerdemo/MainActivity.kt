@@ -60,7 +60,7 @@ class MainActivity : RxActivity() {
                 val imageView: ImageView = itemView.findViewById(R.id.image_view)
             }
 
-            override fun onViewRecycled(holder: RecyclerView.ViewHolder?) {
+            override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
                 (holder as? LoadingViewHolder)?.shimmerLayout?.visibility = View.GONE
                 super.onViewRecycled(holder)
             }
